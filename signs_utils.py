@@ -96,6 +96,9 @@ def detect_regions(detector, test_imgs):
 
 
 def delete_duplicates(detected_regions):
+    """Elimina los duplicados comparando las imagenes según
+    el valor del posición de sus píxeles."""
+
     for img_nombre in detected_regions:
         regions = detected_regions[img_nombre]
         regions_no_dup = regions.copy()
@@ -131,17 +134,39 @@ def evaluate_regions(detected_regions, signs_masks):
         for region in regions:
             mask = __create_mask(region.img).clip(max=1)
             prohib_sum = peligro_sum = stop_sum = 0
+            prohib_sum2 = peligro_sum2 = stop_sum2 = 0
+
             for i in range(25):
                 for j in range(25):
-
                     prohib_sum = prohib_sum + mask[i, j] * prohib_mask[i, j]
                     peligro_sum = peligro_sum + mask[i, j] * peligro_mask[i, j]
                     stop_sum = stop_sum + mask[i, j] * stop_mask[i, j]
 
+                    if mask[i, j] == prohib_mask[i, j]:
+                        prohib_sum2 = prohib_sum2 + 1
+                    if mask[i, j] == peligro_mask[i, j]:
+                        peligro_sum2 = peligro_sum2 + 1
+                    if mask[i, j] == stop_mask[i, j]:
+                        stop_sum2 = stop_sum2 + 1
+
             sums = [prohib_sum, peligro_sum, stop_sum]
+            sum2 = [prohib_sum2, peligro_sum2, stop_sum2]
             max_val_ind = sums.index(max(sums))
-            if sums[max_val_ind] > 180:
-                region.type = max_val_ind
+            max_val_ind2 = sum2.index(max(sum2))
+            
+            if (sums[0] >= 90 or sums[1] >= 90 or sums[2] >= 200) and sum2[max_val_ind2] >= 425:
+                print(img_nombre)
+                print(sums)
+                # mas cerca de 200 o 120
+                a = abs(200 - sums[2])
+                b = (min(abs(130 - sums[1]), abs(130 - sums[0])))
+                if a < b:
+                    region.type = 3
+                elif abs(130 - sums[0]) > abs(130 - sums[1]):
+                    region.type = 2
+                else:
+                    region.type = 1
+
                 region.score = sums[max_val_ind]
                 valid_regions.append(region)
 
@@ -150,23 +175,33 @@ def evaluate_regions(detected_regions, signs_masks):
 
 def export_results(detected_regions):
     try:
-        f = open("resultado.txt", "x")
+        f1 = open("resultado.txt", "x")
     except:
         os.remove("resultado.txt")
-        f = open("resultado.txt", "x")
+        f1 = open("resultado.txt", "x")
+
+    try:
+        f2 = open("resultado_por_tipo.txt", "x")
+    except:
+        os.remove("resultado_por_tipo.txt")
+        f2 = open("resultado_por_tipo.txt", "x")
 
     for img_nombre in detected_regions:
         regions = detected_regions[img_nombre]
+
         for region in regions:
-            plt.title(img_nombre)
-            plt.imshow(cv2.cvtColor(region.img, cv2.COLOR_BGR2RGB))
-            plt.show()
-            f.write(img_nombre + ";"
+            f1.write(img_nombre + ";"
                     + str(region.coord[0]) + ";" + str(region.coord[1]) + ";"
-                    + str(region.coord[2]) + ";" + str(region.coord[3])
+                    + str(region.coord[2]) + ";" + str(region.coord[3]) + ";"
+                    + str(1) + ";" + str(region.score) + "\n")
+
+            f2.write(img_nombre + ";"
+                    + str(region.coord[0]) + ";" + str(region.coord[1]) + ";"
+                    + str(region.coord[2]) + ";" + str(region.coord[3]) + ";"
                     + str(region.type) + ";" + str(region.score) + "\n")
 
-    f.close()
+    f1.close()
+    f2.close()
 
 
 # ------------------------------------------------------#
@@ -211,9 +246,9 @@ def __mser(img):
         x, y, w, h = cv2.boundingRect(polygon)
         ratio = h / w if h / w >= 1 else w / h
 
-        if ratio < 1.15:
-            w2 = round(w * 1.45)  # agrandar dimensiones
-            h2 = round(h * 1.45)
+        if ratio < 1.3:
+            w2 = round(w * 1.4)  # agrandar dimensiones
+            h2 = round(h * 1.4)
             x = round(x - (w2 - w) / 2)
             y = round(y - (h2 - h) / 2)
 
