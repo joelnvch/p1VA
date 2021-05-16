@@ -1,8 +1,8 @@
 import argparse
 
+from signs_utils import *
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description='Trains and executes a given detector over a set of testing images')
     parser.add_argument(
@@ -14,12 +14,21 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Load training data
+    # ----------------  Datos Prueba   ---------------- #
+    args.train_path = 'C:/Users/jn.villaverde.2017/Downloads/train_recortadas/train_recortadas'
+    args.test_path = 'C:/Users/jn.villaverde.2017/Downloads/test/test'
+    args.detector = 'mser'
+    # ----------------  Datos Prueba   ---------------- #
 
-    # Create the detector
+    # Cargar imágenes
+    training_imgs = load_training_data(args.train_path)
+    test_imgs = load_test_data(args.test_path)
 
-    # Load testing data
+    # Procesar las imágenes
+    signs_masks = create_signs_mask(training_imgs)
+    detected_regions = detect_regions(args.detector, test_imgs)
+    delete_duplicates(detected_regions)
 
-    # Evaluate sign detections
-
-
+    # Evaluar los resultados e imprimirlos en .txt
+    evaluate_regions(detected_regions, signs_masks)
+    export_results(detected_regions)
