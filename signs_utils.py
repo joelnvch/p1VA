@@ -131,19 +131,29 @@ def evaluate_regions(detected_regions, signs_masks):
         for region in regions:
             mask = __create_mask(region.img).clip(max=1)
             prohib_sum = peligro_sum = stop_sum = 0
+            prohib_sum2 = peligro_sum2 = stop_sum2 = 0
             for i in range(25):
                 for j in range(25):
-
                     prohib_sum = prohib_sum + mask[i, j] * prohib_mask[i, j]
                     peligro_sum = peligro_sum + mask[i, j] * peligro_mask[i, j]
                     stop_sum = stop_sum + mask[i, j] * stop_mask[i, j]
 
+                    if mask[i, j] == prohib_mask[i, j]:
+                        prohib_sum2 = prohib_sum2 + 1
+                    if mask[i, j] == peligro_mask[i, j]:
+                        peligro_sum2 = peligro_sum2 + 1
+                    if mask[i, j] == stop_mask[i, j]:
+                        stop_sum2 = stop_sum2 + 1
+
             sums = [prohib_sum, peligro_sum, stop_sum]
+            sum2 = [prohib_sum2, peligro_sum2, stop_sum2]
             max_val_ind = sums.index(max(sums))
+            max_val_ind2 = sum2.index(max(sum2))
             if sums[max_val_ind] > 180:
-                region.type = max_val_ind
-                region.score = sums[max_val_ind]
-                valid_regions.append(region)
+                if sum2[max_val_ind2] >= 425:
+                    region.type = max_val_ind
+                    region.score = sums[max_val_ind]
+                    valid_regions.append(region)
 
         detected_regions[img_nombre] = valid_regions
 
@@ -211,7 +221,7 @@ def __mser(img):
         x, y, w, h = cv2.boundingRect(polygon)
         ratio = h / w if h / w >= 1 else w / h
 
-        if ratio < 1.15:
+        if ratio < 1.3:
             w2 = round(w * 1.45)  # agrandar dimensiones
             h2 = round(h * 1.45)
             x = round(x - (w2 - w) / 2)
