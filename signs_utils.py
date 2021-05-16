@@ -203,7 +203,7 @@ def __mser(img):
     bw_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # bw_img = cv2.equalizeHist(bw_img)
 
-    mser = cv2.MSER_create(_delta=50, _max_variation=1.0)
+    mser = cv2.MSER_create(_delta=40, _max_variation=0.8)
     polygons = mser.detectRegions(bw_img)
 
     mser_regions = []
