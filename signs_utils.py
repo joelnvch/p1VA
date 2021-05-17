@@ -3,6 +3,14 @@ import cv2
 import numpy
 import os
 
+
+class Image:
+    def __init__(self, n_img, img):
+        self.n_img = n_img
+        self.img = img
+        self.regions = []
+
+
 class Region:
     def __init__(self, img, coord):
         self.img = img
@@ -49,7 +57,10 @@ def load_test_data(test_path):
     print('Cargando imágenes de test...')
 
     imgs, img_names = __extract_imgs_in_dir(test_path)
-    img_w_names = dict(zip(img_names, imgs))
+
+    img_w_names = []
+    for i in range(len(imgs)):
+        img_w_names.append(Image(img_names[i], imgs[i]))
 
     print(str(len(img_w_names)) + ' imágenes cargadas.\n')
     return img_w_names
@@ -95,13 +106,12 @@ def detect_regions(detector, test_imgs):
 
     cont = 0
     if detector == 'mser' or detector == '':
-        for img_name in test_imgs:
-            mser_regions = __mser(test_imgs[img_name])
-            cont += len(mser_regions)
-            detected_regions[img_name] = mser_regions
+        for img in test_imgs:
+            img.regions = __mser(img.img)
+            cont += len(img.regions)
 
     print(str(cont) + ' regiones detectadas y guardadas.\n')
-    return detected_regions
+    return test_imgs
 
     # elif otros posibles detectores ...
 
@@ -112,12 +122,12 @@ def delete_duplicates(detected_regions):
 
     print('Eliminando regiones duplicadas...')
 
-    for img_nombre in detected_regions:
-        regions = detected_regions[img_nombre]
+    cont2 = 0
+    for img in detected_regions:
+        regions = img.regions
         regions_no_dup = regions.copy()
         regions_len = len(regions)
 
-        cont2 = 0
         for cont in range(regions_len):
             if cont + 1 < regions_len:
                 mask_act = __create_mask(regions[cont].img)
@@ -129,7 +139,7 @@ def delete_duplicates(detected_regions):
                     cont2 += 1
                     regions_no_dup.remove(regions[cont])
 
-        detected_regions[img_nombre] = regions_no_dup
+        img.regions = regions_no_dup
 
     print(str(cont2) + ' duplicados eliminados.\n')
     return detected_regions
@@ -146,8 +156,8 @@ def evaluate_regions(detected_regions, signs_masks, pixel_pos_mode=True):
     scores = [max_score_prohib, max_score_peligro, max_score_stop]
 
     cont = 0
-    for img_nombre in detected_regions:
-        regions = detected_regions[img_nombre]
+    for img in detected_regions:
+        regions = img.regions
         valid_regions = []
         cont += len(regions)
 
@@ -175,7 +185,7 @@ def evaluate_regions(detected_regions, signs_masks, pixel_pos_mode=True):
                 region.score = sums[min_ind] * 100 / scores[min_ind]
                 valid_regions.append(region)
 
-        detected_regions[img_nombre] = valid_regions
+        img.regions = valid_regions
 
     print(str(cont) + ' regiones evaluadas.\n')
 
@@ -198,12 +208,18 @@ def export_results(detected_regions):
     os.mkdir(new_dir)
 
     cont = 0
-    for img_nombre in detected_regions:
-        regions = detected_regions[img_nombre]
-        for region in regions:
-            cont += 1
-            __write_txts(f1, f2, img_nombre, region)
-            cv2.imwrite(os.path.join(new_dir, 'R' + str(cont) + '_' + img_nombre), region.img)
+    for img in detected_regions:
+        regions = img.regions
+        if regions:
+            output = numpy.zeros((img.img.shape[0], img.img.shape[1], 3), dtype=numpy.uint8)
+
+            for region in regions:
+                cont += 1
+                output = cv2.rectangle(img.img, (region.coord[0], region.coord[1]),
+                                       (region.coord[2], region.coord[3]), (0, 255, 0), 2)
+                __write_txts(f1, f2, img.n_img, region)
+
+            cv2.imwrite(os.path.join(new_dir, img.n_img), output)
 
     f1.close()
     f2.close()
@@ -273,14 +289,15 @@ def __mser(img):
         ratio = h / w if h / w >= 1 else w / h
 
         if ratio < 1.3:
-            w2 = round(w * 1.5)  # agrandar dimensiones
+            # agrandar dimensiones y ajustar
+            w2 = round(w * 1.5)
             h2 = round(h * 1.5)
             x = round(x - (w2 - w) / 2)
             y = round(y - (h2 - h) / 2)
 
             try:
                 crop = cv2.resize(img[y:y + h2, x:x + w2], (25, 25))
-                region = Region(img=crop, coord=[y, y + h2, x, x + w2])
+                region = Region(img=crop, coord=[x, y, x + w2, y + h2])
                 mser_regions.append(region)
             except:
                 pass
