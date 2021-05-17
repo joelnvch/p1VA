@@ -105,7 +105,7 @@ def detect_regions(detector, test_imgs):
     detected_regions = {}
 
     cont = 0
-    if detector == 'mser' or detector == '':
+    if 'mser' in detector or detector == '':
         for img in test_imgs:
             img.regions = __mser(img.img)
             cont += len(img.regions)
@@ -145,7 +145,7 @@ def delete_duplicates(detected_regions):
     return detected_regions
 
 
-def evaluate_regions(detected_regions, signs_masks, pixel_pos_mode=True):
+def evaluate_regions(detected_regions, signs_masks, pixel_pos_mode=False):
     """Evalúa las regiones identificando las señales de tráfico."""
 
     print('Evaluando regiones...')
@@ -182,7 +182,7 @@ def evaluate_regions(detected_regions, signs_masks, pixel_pos_mode=True):
 
             if sign_distanc[min_ind] < 70 and pixel_pos:
                 region.type = min_ind + 1
-                region.score = sums[min_ind] * 100 / scores[min_ind]
+                region.score = round(sums[min_ind] * 100 / scores[min_ind], 2)
                 valid_regions.append(region)
 
         img.regions = valid_regions
@@ -194,18 +194,15 @@ def export_results(detected_regions):
     """Guarda los resultados en una carpeta y en ficheros de texto."""
 
     print('Guardando resultados...')
-    new_dir = os.path.join(os.path.dirname(__file__), 'Resultados')
+    new_dir = os.path.join(os.path.dirname(__file__), 'resultado_imgs')
 
-    try:
-        os.remove("resultado.txt")
-        os.remove("resultado_por_tipo.txt")
-        shutil.rmtree(new_dir)
-    except OSError:
-        pass
+    shutil.rmtree(new_dir, ignore_errors=True)
+
+    os.mkdir(new_dir)
+    os.chdir(new_dir)
 
     f1 = open("resultado.txt", "x")
     f2 = open("resultado_por_tipo.txt", "x")
-    os.mkdir(new_dir)
 
     cont = 0
     for img in detected_regions:
@@ -219,7 +216,7 @@ def export_results(detected_regions):
                                        (region.coord[2], region.coord[3]), (0, 255, 0), 2)
                 __write_txts(f1, f2, img.n_img, region)
 
-            cv2.imwrite(os.path.join(new_dir, img.n_img), output)
+            cv2.imwrite(img.n_img, output)
 
     f1.close()
     f2.close()
@@ -275,7 +272,7 @@ def __mser(img):
     """Detecta distinas regiones de contraste mediante un algoritmo MSER"""
 
     bw_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    mser = cv2.MSER_create(_delta=40, _max_variation=0.8)
+    mser = cv2.MSER_create(_delta=35, _max_variation=0.9)
     polygons = mser.detectRegions(bw_img)
 
     mser_regions = []

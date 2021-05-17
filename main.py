@@ -14,12 +14,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # ----------------  Datos Prueba   ---------------- #
-    args.train_path = 'C:/Users/jn.villaverde.2017/Downloads/train_recortadas/train_recortadas'
-    args.test_path = 'C:/Users/jn.villaverde.2017/Downloads/test/test'
-    args.detector = 'mser'
-    # ----------------  Datos Prueba   ---------------- #
-
     # Cargar imágenes
     training_imgs = load_training_data(args.train_path)
     test_imgs = load_test_data(args.test_path)
@@ -30,5 +24,5 @@ if __name__ == "__main__":
     delete_duplicates(detected_regions)
 
     # Evaluar los resultados e imprimirlos en .txt
-    evaluate_regions(detected_regions, signs_masks)
+    evaluate_regions(detected_regions, signs_masks, pixel_pos_mode=(args.detector == 'mserv2'))
     export_results(detected_regions)
