@@ -51,8 +51,7 @@ def load_training_data(train_path):
 
 
 def load_test_data(test_path):
-    """Carga las imagenes de test con sus nombres.
-        OUT: [img_nombre: img, ...] """
+    """Carga las imagenes de test con sus nombres."""
 
     print('Cargando imágenes de test...')
 
@@ -98,8 +97,7 @@ def create_signs_mask(training_imgs):
 
 
 def detect_regions(detector, test_imgs):
-    """Asocia el nombre de una imagen con multiples regiones detectadas de esa imagen.
-        OUT: [img_nombre: [Region1, Region2, ...], ...] """
+    """Para cada Imagen le asociará sus regiones detectadas"""
 
     print('Detectando regiones en imágenes de test...')
     detected_regions = {}
